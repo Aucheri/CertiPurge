@@ -1,7 +1,48 @@
 ﻿@page "/"
+@using Tesseract;
+@rendermode InteractiveServer
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="image-container">
+	<img src="AQA.png" class="image">
 
-Welcome to your new app.
+	@foreach (var line in Lines) {
+		var seperated = line.Split(' ');
+
+		@if (seperated.Length != 6) {
+			continue;
+		}
+
+		var content = seperated[0];
+		float x1 = int.Parse(seperated[1]) / (2480 / 800);
+		float y1 = int.Parse(seperated[2]) / (3508 / 1131);
+		float x2 = int.Parse(seperated[3]) / (2480 / 800);
+		float y2 = int.Parse(seperated[4]) / (3508 / 1131);
+
+		<p style="position: absolute; left: @( $"{x1}px" ); bottom: @( $"{y2}px" );">@content</p>
+	}
+</div>
+
+<button @onclick="Scan">Scan</button>
+
+@code {
+
+	public string[] Lines = Array.Empty<string>();
+
+	public void Scan() {
+		using var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default);
+
+		using var img = Pix.LoadFromFile(@"./Samples/AQA.png");
+
+		using var page = engine.Process(img);
+
+		var text = page.GetLSTMBoxText(1);
+
+		Lines = text.Split("\n", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+		Console.WriteLine("Mean confidence: {0}", page.GetMeanConfidence());
+		Console.WriteLine("Text (GetText): \r\n{0}", text);
+		Console.WriteLine("Text (iterator):");
+	}
+}
