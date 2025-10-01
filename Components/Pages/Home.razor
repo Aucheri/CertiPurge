@@ -1,5 +1,6 @@
 ﻿@page "/"
 @using Tesseract;
+@using global::Tesseract
 @rendermode InteractiveServer
 
 <PageTitle>Home</PageTitle>
@@ -24,86 +25,22 @@
 	public string centrenum = "";
 	public string candidate = "";
 
-	private string GetContentFromWordString(string wordString)
-	{
-		var seperated = wordString.Split(' ');
-
-		if (seperated.Length < 7)
-		{
-			return "";
-		}
-
-		string content = string.Join(" ", seperated[6..]);
-
-		if (!content.StartsWith("#"))
-		{
-			return "";
-		}
-
-		content = content[1..];
-		return content;
-	}
-
 	public void Scan()
 	{
 		using var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default);
 
-		using var img = Pix.LoadFromFile(@"./Samples/AQA.png");
+		using var img = Pix.LoadFromFile(@"./Samples/BTEC.png");
 
 		using var page = engine.Process(img);
 
 		var text = page.GetWordStrBoxText(1);
 
-		var previousLine = "";
-
-		foreach (var line in text.Split("\n"))
+		if (text.Split("\n")[0].Trim().Contains("AQA"))
 		{
-			if (string.IsNullOrWhiteSpace(line))
-			{
-				continue;
-			}
-
-
-			var content = GetContentFromWordString(line);
-
-			if (string.IsNullOrWhiteSpace(content))
-			{
-				continue;
-			}
-
-			Console.WriteLine(content);
-
-			if (content.Contains("date of birth") && string.IsNullOrWhiteSpace(name))
-			{
-				var parts = content.Split("date of birth");
-
-				name = parts[0].Trim();
-			}
-			else if (previousLine.Contains("Subject") && string.IsNullOrWhiteSpace(course))
-			{
-				course = content;
-			}
-			else if (content.Contains("GRADE") && string.IsNullOrWhiteSpace(grade))
-			{
-				grade = string.Join(" ", content.Split(" ")[1..]).Trim();
-			}
-			else if (content.Contains("CENTRE No.") && string.IsNullOrWhiteSpace(centrenum))
-			{
-				content = content.Replace("CENTRE No./CANDIDATE No.", "").Trim();
-
-				var parts = content.Split(' ');
-
-				var focus = parts[0].Trim().Split('/');
-				centrenum = focus[0].Trim();
-				candidate = string.Join("/", focus[1..]).Trim();
-
-				if (candidate.EndsWith("/"))
-				{
-					candidate = candidate[0..^1];
-				}
-			}
-
-			previousLine = content;
+			AQAReader.ReadAQA(text, out name, out course, out grade, out centrenum, out candidate);
+		} else if (text.Split("\n")[0].Trim().Contains("BTEC"))
+		{
+			BTECReader.ReadBTEC(text, out name, out course, out grade, out centrenum, out candidate);
 		}
 	}
 }
