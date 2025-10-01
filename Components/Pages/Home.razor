@@ -1,46 +1,141 @@
 ﻿@page "/"
-@using Tesseract;
-@using global::Tesseract
+@using CertiPurge.Data
+@using OCR;
+@using Tesseract
 @rendermode InteractiveServer
+@inject IJSRuntime JS
+@inject ApplicationDbContext DbContext
 
 <PageTitle>Home</PageTitle>
 
-<div class="image-container">
-	<p>Name: @name</p>
-	<p>Course: @course</p>
-	<p>Grade: @grade</p>
-	<p>Centre Number: @centrenum</p>
-	<p>Candidate: @candidate</p>
+<div class="upload-section">
+	<InputFile OnChange="@SingleUpload" />
 </div>
 
-<button @onclick="Scan">Scan</button>
+<table>
+	<thead>
+		<tr>
+			<th>Name</th>
+			<th>Course</th>
+			<th>Grade</th>
+			<th>Centre Number</th>
+			<th>Candidate Number</th>
+		</tr>
+	</thead>
+	<tbody>
+		@foreach (var cert in CertificatesData)
+		{
+			<tr>
+				<td>@cert.Name</td>
+				<td>@cert.Course</td>
+				<td>@cert.Grade</td>
+				<td>@cert.CentreNumber</td>
+				<td>@cert.CandidateNumber</td>
+			</tr>
+		}
+	</tbody>
+</table>
+
+@if (IsProcessing)
+{
+	<div class="progress-modal">
+		<div class="progress-content">
+			<h2>Processing...</h2>
+			<p>Please wait while we process your documents.</p>
+			<div class="spinner-border text-primary" role="status">
+				<span class="visually-hidden">Loading...</span>
+			</div>
+		</div>
+	</div>
+}
 
 @code {
-
-	public string[] Lines = Array.Empty<string>();
-
-	public string name = "";
-	public string course = "";
-	public string grade = "";
-	public string centrenum = "";
-	public string candidate = "";
-
-	public void Scan()
+	public class FileData
 	{
-		using var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default);
+		public string Name { get; set; } = "";
+		public string Data { get; set; } = "";
+		public long Size { get; set; }
+		public string Type { get; set; } = "";
+	}
 
-		using var img = Pix.LoadFromFile(@"./Samples/BTEC.png");
+	public List<Certificate> CertificatesData = new List<Certificate>();
 
-		using var page = engine.Process(img);
+	public bool IsProcessing { get; set; } = false;
 
-		var text = page.GetWordStrBoxText(1);
+    protected override async Task OnInitializedAsync()
+	{
+		CertificatesData = DbContext.Certificates.ToList();
+	}
 
-		if (text.Split("\n")[0].Trim().Contains("AQA"))
+	public void Scan(string[] pages)
+	{
+		foreach (var page in pages)
 		{
-			AQAReader.ReadAQA(text, out name, out course, out grade, out centrenum, out candidate);
-		} else if (text.Split("\n")[0].Trim().Contains("BTEC"))
-		{
-			BTECReader.ReadBTEC(text, out name, out course, out grade, out centrenum, out candidate);
+			string name = "";
+			string course = "";
+			string grade = "";
+			string centrenum = "";
+			string candidate = "";
+
+			if (page.Split("\n")[0].Trim().Contains("AQA"))
+			{
+				AQAReader.ReadAQA(page, out name, out course, out grade, out centrenum, out candidate);
+				Certificate cert = new Certificate
+				{
+					Name = name,
+					Course = course,
+					Grade = grade,
+					CentreNumber = centrenum,
+					CandidateNumber = candidate,
+					ULN = "" // Set this to the appropriate value if available
+				};
+
+				DbContext.Certificates.Add(cert);
+
+				CertificatesData.Add(cert);
+			} else if (page.Split("\n")[0].Trim().Contains("BTEC"))
+			{
+				Console.WriteLine("Detected BTEC format.");
+				BTECReader.ReadBTEC(page, out name, out course, out grade, out centrenum, out candidate);
+				Certificate cert = new Certificate
+				{
+					Name = name,
+					Course = course,
+					Grade = grade,
+					CentreNumber = centrenum,
+					CandidateNumber = candidate,
+					ULN = "" // Set this to the appropriate value if available
+				};
+
+				DbContext.Certificates.Add(cert);
+
+				CertificatesData.Add(cert);
+			}
 		}
+		
+		DbContext.SaveChanges();
+	}
+
+	public async Task SingleUpload(InputFileChangeEventArgs e)
+	{
+		IsProcessing = true;
+
+		StateHasChanged();
+
+		Console.WriteLine($"File selected: {e.File.Name}, {e.File.Size} bytes, {e.File.ContentType}");
+
+		MemoryStream ms = new MemoryStream();
+		await e.File.OpenReadStream().CopyToAsync(ms);
+		var bytes = ms.ToArray();
+			
+		var pages = await Converter.ConvertPDFToText(bytes);
+
+		Console.WriteLine($"Scanned {pages.Length} pages.");
+
+		Scan(pages.ToArray());
+
+		IsProcessing = false;
+
+		StateHasChanged();
 	}
 }

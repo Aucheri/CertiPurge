@@ -1,4 +1,4 @@
-namespace CertiPurge.Tesseract;
+namespace CertiPurge.OCR;
 
 class Utils {
 	public static string GetContentFromWordString(string input)
@@ -54,8 +54,6 @@ class AQAReader
 				continue;
 			}
 
-			Console.WriteLine(content);
-
 			if (previousLine.Contains("certify that") && string.IsNullOrWhiteSpace(name))
 			{
 				var parts = content.Split("date of birth");
@@ -64,7 +62,16 @@ class AQAReader
 			}
 			else if (previousLine.Contains("Subject") && string.IsNullOrWhiteSpace(course))
 			{
-				course = content;
+				if (content.Contains("GRADE"))
+				{
+					var split = content.Split("GRADE");
+					course = split[0].Trim();
+					grade = string.Join(" ", split[1..]).Trim();
+				}
+				else
+				{	
+					course = content;
+				}
 			}
 			else if (content.Contains("GRADE") && string.IsNullOrWhiteSpace(grade))
 			{
@@ -123,13 +130,13 @@ class BTECReader
 				continue;
 			}
 
-			Console.WriteLine(content);
-
 			if (previousLine.Contains("awarded to") && string.IsNullOrWhiteSpace(name))
 			{
 				var parts = content.Split("date of birth");
 
 				name = parts[0].Trim();
+
+				Console.WriteLine($"Extracted name: {name}");
 			}
 			else if (previousLine.Contains("Diploma") && string.IsNullOrWhiteSpace(course))
 			{
