@@ -5,8 +5,6 @@
 <PageTitle>Home</PageTitle>
 
 <div class="image-container">
-	<img src="2.png" class="image">
-
 	<p>Name: @name</p>
 	<p>Course: @course</p>
 	<p>Grade: @grade</p>
@@ -50,7 +48,7 @@
 	{
 		using var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default);
 
-		using var img = Pix.LoadFromFile(@"./Samples/2.png");
+		using var img = Pix.LoadFromFile(@"./Samples/AQA.png");
 
 		using var page = engine.Process(img);
 
