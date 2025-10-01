@@ -5,10 +5,9 @@
 <PageTitle>Home</PageTitle>
 
 <div class="image-container">
-	<img src="AQA.png" class="image">
+	<img src="2.png" class="image">
 
 	<p>Name: @name</p>
-	<p>Date of Birth: @dob</p>
 	<p>Course: @course</p>
 	<p>Grade: @grade</p>
 	<p>Centre Number: @centrenum</p>
@@ -22,73 +21,86 @@
 	public string[] Lines = Array.Empty<string>();
 
 	public string name = "";
-	public string dob = "";
 	public string course = "";
 	public string grade = "";
 	public string centrenum = "";
 	public string candidate = "";
 
-	private string GetContentFromWordString(string wordString) {
+	private string GetContentFromWordString(string wordString)
+	{
 		var seperated = wordString.Split(' ');
 
-		Console.WriteLine(seperated.Length);
-
-		if (seperated.Length < 7) {
+		if (seperated.Length < 7)
+		{
 			return "";
 		}
 
 		string content = string.Join(" ", seperated[6..]);
 
-		if (content.StartsWith("#")) {
-			content = content[1..];
+		if (!content.StartsWith("#"))
+		{
+			return "";
 		}
 
-		Console.WriteLine(content);
+		content = content[1..];
 		return content;
 	}
 
-	public void Scan() {
+	public void Scan()
+	{
 		using var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default);
 
-		using var img = Pix.LoadFromFile(@"./Samples/AQA.png");
+		using var img = Pix.LoadFromFile(@"./Samples/2.png");
 
 		using var page = engine.Process(img);
 
 		var text = page.GetWordStrBoxText(1);
 
-		var previousLine = "";	
+		var previousLine = "";
 
-		foreach (var line in text.Split("\n")) {
-			if (string.IsNullOrWhiteSpace(line)) {
+		foreach (var line in text.Split("\n"))
+		{
+			if (string.IsNullOrWhiteSpace(line))
+			{
 				continue;
 			}
 
 
 			var content = GetContentFromWordString(line);
 
-			Lines = Lines.Append(content).ToArray();
+			if (string.IsNullOrWhiteSpace(content))
+			{
+				continue;
+			}
+
+			Console.WriteLine(content);
 
 			if (content.Contains("date of birth") && string.IsNullOrWhiteSpace(name))
 			{
 				var parts = content.Split("date of birth");
 
 				name = parts[0].Trim();
-
-				dob = parts[1].Trim();
-			} else if (content.Contains("ENGLISH") && string.IsNullOrWhiteSpace(course)) {
+			}
+			else if (previousLine.Contains("Subject") && string.IsNullOrWhiteSpace(course))
+			{
 				course = content;
-			} else if (content.Contains("GRADE") && string.IsNullOrWhiteSpace(grade)) {
+			}
+			else if (content.Contains("GRADE") && string.IsNullOrWhiteSpace(grade))
+			{
 				grade = string.Join(" ", content.Split(" ")[1..]).Trim();
-			} else if (content.Contains("CENTRE No.") && string.IsNullOrWhiteSpace(centrenum)) {
+			}
+			else if (content.Contains("CENTRE No.") && string.IsNullOrWhiteSpace(centrenum))
+			{
 				content = content.Replace("CENTRE No./CANDIDATE No.", "").Trim();
-			
+
 				var parts = content.Split(' ');
 
 				var focus = parts[0].Trim().Split('/');
 				centrenum = focus[0].Trim();
 				candidate = string.Join("/", focus[1..]).Trim();
 
-				if (candidate.EndsWith("/")) {
+				if (candidate.EndsWith("/"))
+				{
 					candidate = candidate[0..^1];
 				}
 			}
