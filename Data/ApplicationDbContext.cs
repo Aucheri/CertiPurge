@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 
+namespace CertiPurge.Data;
+
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
@@ -10,13 +12,12 @@ public class AppDbContext : DbContext
 public class Certificate
 {
     public int Id { get; set; }
-    public string CandidateNumber { get; set; }
-    public string CentreNumber { get; set; }
-    public string ULN { get; set; }
-    public string Name { get; set; }
-    public string Course { get; set; }
-    public string Grade { get; set; }
-    public string DateIssued { get; set; }
-    public string DestructionDate { get; set; }
-    public bool Destroyed { get; set; }
+    public required string CandidateNumber { get; set; }
+    public required string CentreNumber { get; set; }
+    public required string ULN { get; set; }
+    public required string Name { get; set; }
+    public required string Course { get; set; }
+    public required string Grade { get; set; }
+    public string? DateIssued { get; set; }
+    public DateOnly DestructionDate { get; set; }
 }
