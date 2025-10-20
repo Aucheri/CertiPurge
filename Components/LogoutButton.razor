@@ -1,0 +1,15 @@
+@rendermode InteractiveServer
+@using CertiPurge.Data
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authentication
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+@inject IHttpContextAccessor HttpContextAccessor
+
+
+@code {
+    private async Task Logout()
+    {
+        NavigationManager.NavigateTo("/Logout", forceLoad: true);
+    }
+}

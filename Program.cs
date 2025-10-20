@@ -61,4 +61,25 @@ app.MapRazorComponents<App>()
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
+using (var scope = app.Services.CreateScope())
+{
+	var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+	if ((await userManager.FindByEmailAsync("certs@priestley.ac.uk")) == null)
+	{
+		var user = new ApplicationUser
+		{
+			UserName = "certs@priestley.ac.uk",
+			Email = "certs@priestley.ac.uk",
+			EmailConfirmed = true
+		};
+
+		var result = await userManager.CreateAsync(user, "ChangeMe123!");
+		if (!result.Succeeded)
+		{
+			throw new InvalidOperationException("Failed to create seed user.");
+		}
+	}
+}
+
 app.Run();
