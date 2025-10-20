@@ -11,30 +11,32 @@
 
 <PageTitle>Home</PageTitle>
 
-
-<table>
-	<thead>
-		<tr>
-			<th>Name</th>
-			<th>Course</th>
-			<th>Grade</th>
-			<th>Centre Number</th>
-			<th>Candidate Number</th>
-		</tr>
-	</thead>
-	<tbody>
-		@foreach (var cert in CertificatesData)
-		{
-			<tr>
-				<td>@cert.Name</td>
-				<td>@cert.Course</td>
-				<td>@cert.Grade</td>
-				<td>@cert.CentreNumber</td>
-				<td>@cert.CandidateNumber</td>
+<div class="pt-8"
+	<table>
+		<thead class="bg-red-700">
+			<tr class="text-white">
+					<th>Name</th>
+					<th>Course</th>
+					<th>Grade</th>
+					<th>Centre Number</th>
+					<th>Candidate Number</th>
 			</tr>
-		}
-	</tbody>
-</table>
+
+		</thead>
+		<tbody>
+			@foreach (var cert in CertificatesData)
+			{
+				<tr class="">
+					<td>@cert.Name</td>
+					<td>@cert.Course</td>
+					<td>@cert.Grade</td>
+					<td>@cert.CentreNumber</td>
+					<td>@cert.CandidateNumber</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+</div>
 
 @code {
 	public class FileData
