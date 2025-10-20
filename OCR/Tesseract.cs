@@ -12,7 +12,7 @@ class Utils {
 
 		string content = string.Join(" ", seperated[6..]);
 
-		if (!content.StartsWith("#"))
+		if (!content.StartsWith('#'))
 		{
 			return "";
 		}
