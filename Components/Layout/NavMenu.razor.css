@@ -21,6 +21,8 @@
 }
 
 .navbar-brand {
+    font-size: larger;
+    font-weight: bolder;
     font-size: 1.1rem;
 }
 
