@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/add"
 @using CertiPurge.Data
 @using OCR;
 @using Tesseract
@@ -6,32 +6,25 @@
 @inject IJSRuntime JS
 @inject ApplicationDbContext DbContext
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Add Record</PageTitle>
 
+<div class="upload-section">
+	<InputFile OnChange="@SingleUpload" />
+</div>
 
-<table>
-	<thead>
-		<tr>
-			<th>Name</th>
-			<th>Course</th>
-			<th>Grade</th>
-			<th>Centre Number</th>
-			<th>Candidate Number</th>
-		</tr>
-	</thead>
-	<tbody>
-		@foreach (var cert in CertificatesData)
-		{
-			<tr>
-				<td>@cert.Name</td>
-				<td>@cert.Course</td>
-				<td>@cert.Grade</td>
-				<td>@cert.CentreNumber</td>
-				<td>@cert.CandidateNumber</td>
-			</tr>
-		}
-	</tbody>
-</table>
+@if (IsProcessing)
+{
+	<div class="progress-modal">
+		<div class="progress-content">
+			<h2>Processing...</h2>
+			<p>Please wait while we process your documents.</p>
+			<div class="spinner-border text-primary" role="status">
+				<span class="visually-hidden">Loading...</span>
+			</div>
+		</div>
+	</div>
+}
+
 
 @code {
 	public class FileData
@@ -42,14 +35,7 @@
 		public string Type { get; set; } = "";
 	}
 
-	public List<Certificate> CertificatesData = new List<Certificate>();
-
 	public bool IsProcessing { get; set; } = false;
-
-	protected override async Task OnInitializedAsync()
-	{
-		CertificatesData = DbContext.Certificates.ToList();
-	}
 
 	public void Scan(string[] pages)
 	{
@@ -76,8 +62,6 @@
 				};
 
 				DbContext.Certificates.Add(cert);
-
-				CertificatesData.Add(cert);
 			}
 			else if (page.Split("\n")[0].Trim().Contains("BTEC"))
 			{
@@ -95,8 +79,6 @@
 				};
 
 				DbContext.Certificates.Add(cert);
-
-				CertificatesData.Add(cert);
 			}
 		}
 
