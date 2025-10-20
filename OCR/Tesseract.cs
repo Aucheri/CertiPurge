@@ -1,6 +1,7 @@
 namespace CertiPurge.OCR;
 
-class Utils {
+class Readers
+{
 	public static string GetContentFromWordString(string input)
 	{
 		var seperated = input.Split(' ');
@@ -20,10 +21,6 @@ class Utils {
 		content = content[1..];
 		return content;
 	}
-}
-
-class AQAReader
-{
 	public static void ReadAQA(string text, out string name, out string course, out string grade, out string centrenum, out string candidate)
 	{
 		name = string.Empty;
@@ -47,7 +44,7 @@ class AQAReader
 			}
 
 
-			var content = Utils.GetContentFromWordString(line);
+			var content = GetContentFromWordString(line);
 
 			if (string.IsNullOrWhiteSpace(content))
 			{
@@ -69,7 +66,7 @@ class AQAReader
 					grade = string.Join(" ", split[1..]).Trim();
 				}
 				else
-				{	
+				{
 					course = content;
 				}
 			}
@@ -96,10 +93,7 @@ class AQAReader
 			previousLine = content;
 		}
 	}
-}
-
-class BTECReader
-{
+	
 	public static void ReadBTEC(string text, out string name, out string course, out string grade, out string centrenum, out string candidate)
 	{
 		name = string.Empty;
@@ -123,7 +117,7 @@ class BTECReader
 			}
 
 
-			var content = Utils.GetContentFromWordString(line);
+			var content = GetContentFromWordString(line);
 
 			if (string.IsNullOrWhiteSpace(content))
 			{

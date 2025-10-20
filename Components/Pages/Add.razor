@@ -41,6 +41,10 @@
 	</div>
 }
 
+@if (FailedCount > 0) {
+	<span>Failed to read @FailedCount certificates.</span>
+}
+
 
 @code {
 	public class FileData
@@ -53,8 +57,14 @@
 
 	public bool IsProcessing { get; set; } = false;
 
+	public int FailedCount = 0;
+
 	public void Scan(string[] pages)
 	{
+		FailedCount = 0;
+
+		Console.WriteLine("Processing certificates");
+
 		foreach (var page in pages)
 		{
 			string name = "";
@@ -63,9 +73,9 @@
 			string centrenum = "";
 			string candidate = "";
 
-			if (page.Split("\n")[0].Trim().Contains("AQA"))
+			if (page.Contains("AQA"))
 			{
-				AQAReader.ReadAQA(page, out name, out course, out grade, out centrenum, out candidate);
+				Readers.ReadAQA(page, out name, out course, out grade, out centrenum, out candidate);
 				Certificate cert = new Certificate
 				{
 					Name = name,
@@ -82,7 +92,7 @@
 			else if (page.Split("\n")[0].Trim().Contains("BTEC"))
 			{
 				Console.WriteLine("Detected BTEC format.");
-				BTECReader.ReadBTEC(page, out name, out course, out grade, out centrenum, out candidate);
+				Readers.ReadBTEC(page, out name, out course, out grade, out centrenum, out candidate);
 				Certificate cert = new Certificate
 				{
 					Name = name,
@@ -95,6 +105,9 @@
 				};
 
 				DbContext.Certificates.Add(cert);
+			}
+			else {
+				FailedCount++;
 			}
 		}
 
@@ -109,9 +122,18 @@
 
 		Console.WriteLine($"File selected: {e.File.Name}, {e.File.Size} bytes, {e.File.ContentType}");
 
-		MemoryStream ms = new MemoryStream();
-		await e.File.OpenReadStream().CopyToAsync(ms);
-		var bytes = ms.ToArray();
+		var fileSize = (int)e.File.Size;
+		using var inStream = e.File.OpenReadStream(maxAllowedSize: e.File.Size);
+		var bytes = new byte[fileSize];
+		int offset = 0;
+		while (offset < fileSize)
+		{
+			int read = await inStream.ReadAsync(bytes, offset, fileSize - offset);
+			if (read == 0) break;
+			offset += read;
+		}
+
+		Console.WriteLine("Here");
 
 		var pages = await Converter.ConvertPDFToText(bytes);
 
