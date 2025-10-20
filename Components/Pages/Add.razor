@@ -5,11 +5,14 @@
 </style>
 
 @using CertiPurge.Data
+@using Microsoft.AspNetCore.Authorization
 @using OCR;
 @using Tesseract
 @rendermode InteractiveServer
 @inject IJSRuntime JS
 @inject ApplicationDbContext DbContext
+
+@attribute [Authorize]
 
 <PageTitle>Add Record</PageTitle>
 <div class="flex justify-center items-center h-screen">
