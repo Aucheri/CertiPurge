@@ -1,4 +1,9 @@
 @page "/add"
+<style>
+	.align-top { align-self: flex-start !important; }
+	.ring-2.w-screen.flex.justify-center.items-center.max-w-sm { align-items: flex-start !important; }
+</style>
+
 @using CertiPurge.Data
 @using OCR;
 @using Tesseract
@@ -7,10 +12,18 @@
 @inject ApplicationDbContext DbContext
 
 <PageTitle>Add Record</PageTitle>
-
-<div class="upload-section">
-	<InputFile OnChange="@SingleUpload" />
+<div class="flex justify-center items-center h-screen">
+  <div class="box-content h-1/2 ring-2 w-screen max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-md dark:bg-gray-800 dark:border-gray-700 ring-gray-300 flex flex-col justify-between items-center">
+    <div class="block h-1/3 outline-dashed outline-blue-400 p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700">
+      <InputFile class="" OnChange="@SingleUpload" />
+	  <div class="justify-center pt-4 flex">
+			<img src="/assets/Upload_Icon.svg" class="w-14 h-14 object-contain" />
+		</div>
+    </div>
+	<p class=""></p>
+  </div>
 </div>
+
 
 @if (IsProcessing)
 {
