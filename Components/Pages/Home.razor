@@ -71,4 +71,54 @@
 	{
 		CertificatesData = DbContext.Certificates.ToList();
 	}
+
+	private static string EscapeCsv(string value)
+	{
+		if (string.IsNullOrEmpty(value))
+			return "";
+
+		// If value contains a comma, double-quote, or newline, wrap in quotes and escape internal quotes
+		if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
+		{
+			value = "\"" + value.Replace("\"", "\"\"") + "\"";
+		}
+
+		return value;
+	}
+
+	private static string ToCsv(IEnumerable<Certificate> certs)
+	{
+		var sb = new System.Text.StringBuilder();
+
+		// Header row
+		sb.AppendLine("Name,Course,Grade,Centre Number,Exam Board,Candidate Number");
+
+		// Data rows
+		foreach (var cert in certs)
+		{
+			sb.AppendLine(string.Join(",",
+			EscapeCsv(cert.Name),
+			EscapeCsv(cert.Course),
+			EscapeCsv(cert.Grade),
+			EscapeCsv(cert.CentreNumber),
+			EscapeCsv(cert.ExamBoard),
+			EscapeCsv(cert.CandidateNumber)
+			));
+		}
+
+		return sb.ToString();
+	}
+
+	public async Task ExportCSV()
+	{
+		// Convert data to CSV
+		var csvContent = ToCsv(CertificatesData);
+
+		// Convert to Base64 for download
+		var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
+		var base64 = Convert.ToBase64String(bytes);
+
+		// Call JavaScript to trigger download
+		await JS.InvokeVoidAsync("downloadFileFromBase64", "certificates.csv", base64);
+	}
 }
