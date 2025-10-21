@@ -1,6 +1,5 @@
-console.log('download.js loaded');
-
 window.downloadFileFromBase64 = function (filename, base64) {
+
     try {
         const binary = atob(base64);
         const len = binary.length;
@@ -19,7 +18,6 @@ window.downloadFileFromBase64 = function (filename, base64) {
         a.remove();
         URL.revokeObjectURL(url);
 
-        console.log('download started');
     } catch (err) {
         console.error('downloadFileFromBase64 error:', err);
         throw err;

@@ -1,4 +1,5 @@
 ﻿@page "/"
+@rendermode InteractiveServer
 @using System
 @using System.Collections.Generic
 @using System.IO
@@ -14,7 +15,7 @@
 
 <PageTitle>Home</PageTitle>
 
-<button @onclick="ExportCSV">Export certificates to Excel</button>
+<button @onclick="() => ExportCSV()">Export certificates to Excel</button>
 
 <table>
     <thead>
@@ -23,6 +24,7 @@
             <th>Course</th>
             <th>Grade</th>
             <th>Centre Number</th>
+            <th>Exam Board</th>
             <th>Candidate Number</th>
         </tr>
     </thead>
@@ -34,6 +36,7 @@
                 <td>@cert.Course</td>
                 <td>@cert.Grade</td>
                 <td>@cert.CentreNumber</td>
+                <td>@cert.ExamBoard</td>
                 <td>@cert.CandidateNumber</td>
             </tr>
         }
@@ -131,15 +134,12 @@
     private static string EscapeCsv(string value)
     {
         if (string.IsNullOrEmpty(value))
-        {
             return "";
-        }
 
-        bool mustQuote = value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r');
-
-        if (mustQuote)
+        // If value contains a comma, double-quote, or newline, wrap in quotes and escape internal quotes
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
         {
-            return "\"" + value.Replace("\"", "\"\"") + "\"";
+            value = "\"" + value.Replace("\"", "\"\"") + "\"";
         }
 
         return value;
@@ -148,53 +148,36 @@
     private static string ToCsv(IEnumerable<Certificate> certs)
     {
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine("Name,Course,Grade,Centre Number,Candidate Number,Exam Board,ULN");
 
-        foreach (var c in certs)
+        // Header row
+        sb.AppendLine("Name,Course,Grade,Centre Number,Exam Board,Candidate Number");
+
+        // Data rows
+        foreach (var cert in certs)
         {
-            sb.AppendLine(
-                EscapeCsv(c.Name) + "," +
-                EscapeCsv(c.Course) + "," +
-                EscapeCsv(c.Grade) + "," +
-                EscapeCsv(c.CentreNumber) + "," +
-                EscapeCsv(c.CandidateNumber) + "," +
-                EscapeCsv(c.ExamBoard) + "," +
-                EscapeCsv(c.ULN)
-            );
+            sb.AppendLine(string.Join(",",
+                EscapeCsv(cert.Name),
+                EscapeCsv(cert.Course),
+                EscapeCsv(cert.Grade),
+                EscapeCsv(cert.CentreNumber),
+                EscapeCsv(cert.ExamBoard),
+                EscapeCsv(cert.CandidateNumber)
+            ));
         }
 
         return sb.ToString();
     }
 
-    public async Task ExportCSV() //chatgpt and copilot wrote all of this stuff bro
+    public async Task ExportCSV()
     {
-        // Also log to browser console so you can see these messages in DevTools
-        await JS.InvokeVoidAsync("console.log", "ExportCSV() called (browser)");
-        Console.WriteLine("ExportCSV() called!");
+        // Convert data to CSV
+        var csvContent = ToCsv(CertificatesData);
 
-        string csv = ToCsv(CertificatesData);
-        await JS.InvokeVoidAsync("console.log", $"CSV built: {csv.Length} characters (browser)");
-        Console.WriteLine($"CSV built: {csv.Length} characters");
-
-        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        // Convert to Base64 for download
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
         var base64 = Convert.ToBase64String(bytes);
-        await JS.InvokeVoidAsync("console.log", "Base64 conversion done (browser)");
-        Console.WriteLine("Base64 conversion done.");
 
-        try
-        {
-            // quick check what the JS runtime thinks the function type is
-            var fnType = await JS.InvokeAsync<string>("eval", "typeof window.downloadFileFromBase64");
-            await JS.InvokeVoidAsync("console.log", $"downloadFileFromBase64 type: {fnType}");
-
-            await JS.InvokeVoidAsync("downloadFileFromBase64", "certificates.csv", base64);
-            await JS.InvokeVoidAsync("console.log", "JS invoked successfully (browser)");
-            Console.WriteLine("JS invoked successfully!");
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("console.error", "Error invoking JS: " + ex.Message);
-            Console.WriteLine("Error invoking JS: " + ex.Message);
-        }
+        // Call JavaScript to trigger download
+        await JS.InvokeVoidAsync("downloadFileFromBase64", "certificates.csv", base64);
     }
 }
