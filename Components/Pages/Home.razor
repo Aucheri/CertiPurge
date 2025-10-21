@@ -20,8 +20,13 @@
 
 @attribute [Authorize]
 
-
 <PageTitle>Home</PageTitle>
+
+<button @onclick="() => ExportCSV()">Export certificates to Excel</button>
+
+<div>
+	<InputText @bind-Value="search">Search...</InputText>
+</div>
 
 <div class="pt-8" <table>
 	<thead class="bg-red-700">
@@ -33,19 +38,40 @@
 			<th>Exam Board</th>
 			<th>Candidate Number</th>
 		</tr>
-
 	</thead>
 	<tbody>
 		@foreach (var cert in CertificatesData)
 		{
-			<tr class="">
-				<td>@cert.Name</td>
-				<td>@cert.Course</td>
-				<td>@cert.Grade</td>
-				<td>@cert.CentreNumber</td>
-				<td>@cert.ExamBoard</td>
-				<td>@cert.CandidateNumber</td>
-			</tr>
+			if (!string.IsNullOrEmpty(search) && (
+			(cert.Name != null && cert.Name.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+			(cert.Course != null && cert.Course.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+			(cert.Grade != null && cert.Grade.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+			(cert.CentreNumber != null && cert.CentreNumber.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+			(cert.ExamBoard != null && cert.ExamBoard.Contains(search, StringComparison.OrdinalIgnoreCase)) ||
+			(cert.CandidateNumber != null && cert.CandidateNumber.Contains(search, StringComparison.OrdinalIgnoreCase))
+			))
+			{
+				<tr>
+					<td>@cert.Name</td>
+					<td>@cert.Course</td>
+					<td>@cert.Grade</td>
+					<td>@cert.CentreNumber</td>
+					<td>@cert.ExamBoard</td>
+					<td>@cert.CandidateNumber</td>
+				</tr>
+			}
+			else if (string.IsNullOrEmpty(search))
+			{
+				<!-- Show all certificates if there's no search term -->
+				<tr>
+					<td>@cert.Name</td>
+					<td>@cert.Course</td>
+					<td>@cert.Grade</td>
+					<td>@cert.CentreNumber</td>
+					<td>@cert.ExamBoard</td>
+					<td>@cert.CandidateNumber</td>
+				</tr>
+			}
 		}
 	</tbody>
 	</table>
@@ -55,6 +81,8 @@
 	@onclick="() => ExportCSV()">Export certificates to Excel</button>
 
 @code {
+
+	public string? search { get; set; }
 	public class FileData
 	{
 		public string Name { get; set; } = "";
@@ -71,6 +99,7 @@
 	{
 		CertificatesData = DbContext.Certificates.ToList();
 	}
+
 
 	private static string EscapeCsv(string value)
 	{
