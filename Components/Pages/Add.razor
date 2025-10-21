@@ -159,7 +159,7 @@
 					Grade = grade,
 					CentreNumber = centrenum,
 					CandidateNumber = candidate,
-					ExamBoard = "BTEC",
+					ExamBoard = "EDUQAS",
 					ULN = "" // Set this to the appropriate value if available
 				};
 
@@ -177,7 +177,7 @@
 					Grade = grade,
 					CentreNumber = centrenum,
 					CandidateNumber = candidate,
-					ExamBoard = "BTEC",
+					ExamBoard = "OCR",
 					ULN = "" // Set this to the appropriate value if available
 				};
 
@@ -217,7 +217,7 @@
 
 			var fileSize = (int)e.File.Size;
 			using var inStream = e.File.OpenReadStream(maxAllowedSize: e.File.Size);
-			var bytes = ms.ToArray();
+			var bytes = new byte[fileSize];
 			int offset = 0;
 			while (offset < fileSize)
 			{
@@ -225,9 +225,6 @@
 				if (read == 0) break;
 				offset += read;
 			}
-			Console.WriteLine("Here");
-			MemoryStream ms = new MemoryStream();
-			await e.File.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(ms);
 
 			var pages = await Converter.ConvertPDFToText(bytes);
 
