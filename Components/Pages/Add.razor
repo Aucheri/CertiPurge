@@ -217,6 +217,7 @@
 
 			var fileSize = (int)e.File.Size;
 			using var inStream = e.File.OpenReadStream(maxAllowedSize: e.File.Size);
+			var bytes = ms.ToArray();
 			int offset = 0;
 			while (offset < fileSize)
 			{
@@ -227,7 +228,6 @@
 			Console.WriteLine("Here");
 			MemoryStream ms = new MemoryStream();
 			await e.File.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024).CopyToAsync(ms);
-			var bytes = ms.ToArray();
 
 			var pages = await Converter.ConvertPDFToText(bytes);
 
