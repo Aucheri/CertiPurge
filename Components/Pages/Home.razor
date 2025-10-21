@@ -1,16 +1,28 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@using System
+@using System.Collections.Generic
+@using System.IO
+@using System.Linq
+@using System.Threading.Tasks
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
 @using CertiPurge.Data
+
+@using OCR
+
 @using Microsoft.AspNetCore.Authorization
 @using OCR;
+
 @using Tesseract
-@rendermode InteractiveServer
 @inject IJSRuntime JS
 @inject ApplicationDbContext DbContext
 
 @attribute [Authorize]
 
-<PageTitle>Home</PageTitle>
 
+<PageTitle>Home</PageTitle>
+<button @onclick="() => ExportCSV()">Export certificates to Excel</button>
 <div class="pt-8"
 	<table>
 		<thead class="bg-red-700">
@@ -19,6 +31,7 @@
 					<th>Course</th>
 					<th>Grade</th>
 					<th>Centre Number</th>
+          <th>Exam Board</th>
 					<th>Candidate Number</th>
 			</tr>
 
@@ -31,6 +44,7 @@
 					<td>@cert.Course</td>
 					<td>@cert.Grade</td>
 					<td>@cert.CentreNumber</td>
+          <td>@cert.ExamBoard</td>
 					<td>@cert.CandidateNumber</td>
 				</tr>
 			}
@@ -39,95 +53,140 @@
 </div>
 
 @code {
-	public class FileData
-	{
-		public string Name { get; set; } = "";
-		public string Data { get; set; } = "";
-		public long Size { get; set; }
-		public string Type { get; set; } = "";
-	}
+    public class FileData
+    {
+        public string Name { get; set; } = "";
+        public string Data { get; set; } = "";
+        public long Size { get; set; }
+        public string Type { get; set; } = "";
+    }
 
-	public List<Certificate> CertificatesData = new List<Certificate>();
+    public List<CertiPurge.Data.Certificate> CertificatesData = new();
 
-	public bool IsProcessing { get; set; } = false;
+    public bool IsProcessing { get; set; } = false;
 
-	protected override async Task OnInitializedAsync()
-	{
-		CertificatesData = DbContext.Certificates.ToList();
-	}
+    protected override async Task OnInitializedAsync()
+    {
+        CertificatesData = DbContext.Certificates.ToList();
+    }
 
-	public void Scan(string[] pages)
-	{
-		foreach (var page in pages)
-		{
-			string name = "";
-			string course = "";
-			string grade = "";
-			string centrenum = "";
-			string candidate = "";
+    public void Scan(string[] pages)
+    {
+        foreach (var page in pages)
+        {
+            string name = "";
+            string course = "";
+            string grade = "";
+            string centrenum = "";
+            string candidate = "";
 
-			if (page.Split("\n")[0].Trim().Contains("AQA"))
-			{
-				AQAReader.ReadAQA(page, out name, out course, out grade, out centrenum, out candidate);
-				Certificate cert = new Certificate
-				{
-					Name = name,
-					Course = course,
-					Grade = grade,
-					CentreNumber = centrenum,
-					CandidateNumber = candidate,
-					ExamBoard = "AQA",
-					ULN = "" // Set this to the appropriate value if available
-				};
+            if (page.Split("\n")[0].Trim().Contains("AQA"))
+            {
+                AQAReader.ReadAQA(page, out name, out course, out grade, out centrenum, out candidate);
+                var cert = new Certificate
+                {
+                    Name = name,
+                    Course = course,
+                    Grade = grade,
+                    CentreNumber = centrenum,
+                    CandidateNumber = candidate,
+                    ExamBoard = "AQA",
+                    ULN = ""
+                };
 
-				DbContext.Certificates.Add(cert);
+                DbContext.Certificates.Add(cert);
+                CertificatesData.Add(cert);
+            }
+            else if (page.Split("\n")[0].Trim().Contains("BTEC"))
+            {
+                Console.WriteLine("Detected BTEC format.");
+                BTECReader.ReadBTEC(page, out name, out course, out grade, out centrenum, out candidate);
+                var cert = new Certificate
+                {
+                    Name = name,
+                    Course = course,
+                    Grade = grade,
+                    CentreNumber = centrenum,
+                    CandidateNumber = candidate,
+                    ExamBoard = "BTEC",
+                    ULN = ""
+                };
 
-				CertificatesData.Add(cert);
-			}
-			else if (page.Split("\n")[0].Trim().Contains("BTEC"))
-			{
-				Console.WriteLine("Detected BTEC format.");
-				BTECReader.ReadBTEC(page, out name, out course, out grade, out centrenum, out candidate);
-				Certificate cert = new Certificate
-				{
-					Name = name,
-					Course = course,
-					Grade = grade,
-					CentreNumber = centrenum,
-					CandidateNumber = candidate,
-					ExamBoard = "BTEC",
-					ULN = "" // Set this to the appropriate value if available
-				};
+                DbContext.Certificates.Add(cert);
+                CertificatesData.Add(cert);
+            }
+        }
 
-				DbContext.Certificates.Add(cert);
+        DbContext.SaveChanges();
+    }
 
-				CertificatesData.Add(cert);
-			}
-		}
+    public async Task SingleUpload(InputFileChangeEventArgs e)
+    {
+        IsProcessing = true;
+        StateHasChanged();
 
-		DbContext.SaveChanges();
-	}
+        Console.WriteLine($"File selected: {e.File.Name}, {e.File.Size} bytes, {e.File.ContentType}");
 
-	public async Task SingleUpload(InputFileChangeEventArgs e)
-	{
-		IsProcessing = true;
+        using var ms = new MemoryStream();
+        await e.File.OpenReadStream().CopyToAsync(ms);
+        var bytes = ms.ToArray();
 
-		StateHasChanged();
+        var pages = await Converter.ConvertPDFToText(bytes);
+        Console.WriteLine($"Scanned {pages.Length} pages.");
 
-		Console.WriteLine($"File selected: {e.File.Name}, {e.File.Size} bytes, {e.File.ContentType}");
+        Scan(pages.ToArray());
 
-		MemoryStream ms = new MemoryStream();
-		await e.File.OpenReadStream().CopyToAsync(ms);
-		var bytes = ms.ToArray();
+        IsProcessing = false;
+        StateHasChanged();
+    }
 
-		var pages = await Converter.ConvertPDFToText(bytes);
+    private static string EscapeCsv(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "";
 
-		Console.WriteLine($"Scanned {pages.Length} pages.");
+        // If value contains a comma, double-quote, or newline, wrap in quotes and escape internal quotes
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r'))
+        {
+            value = "\"" + value.Replace("\"", "\"\"") + "\"";
+        }
 
-		Scan(pages.ToArray());
+        return value;
+    }
 
-		IsProcessing = false;
+    private static string ToCsv(IEnumerable<Certificate> certs)
+    {
+        var sb = new System.Text.StringBuilder();
 
-		StateHasChanged();
-	}
+        // Header row
+        sb.AppendLine("Name,Course,Grade,Centre Number,Exam Board,Candidate Number");
+
+        // Data rows
+        foreach (var cert in certs)
+        {
+            sb.AppendLine(string.Join(",",
+                EscapeCsv(cert.Name),
+                EscapeCsv(cert.Course),
+                EscapeCsv(cert.Grade),
+                EscapeCsv(cert.CentreNumber),
+                EscapeCsv(cert.ExamBoard),
+                EscapeCsv(cert.CandidateNumber)
+            ));
+        }
+
+        return sb.ToString();
+    }
+
+    public async Task ExportCSV()
+    {
+        // Convert data to CSV
+        var csvContent = ToCsv(CertificatesData);
+
+        // Convert to Base64 for download
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csvContent);
+        var base64 = Convert.ToBase64String(bytes);
+
+        // Call JavaScript to trigger download
+        await JS.InvokeVoidAsync("downloadFileFromBase64", "certificates.csv", base64);
+    }
 }
