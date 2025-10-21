@@ -8,11 +8,14 @@ class Converter
 {
 	public static async Task<string[]> ConvertPDFToText(byte[] bytesArr)
 	{
+		Console.WriteLine("Converting to images");
+
 		using var pdfStream = new MemoryStream(bytesArr);
 
 		var images = new List<SKBitmap>();
 		await foreach (var img in Conversion.ToImagesAsync(pdfStream))
 		{
+			Console.WriteLine("Converted to image");
 			images.Add(img);
 		}
 

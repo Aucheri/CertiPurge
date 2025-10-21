@@ -1,7 +1,12 @@
 @page "/add"
 <style>
-	.align-top { align-self: flex-start !important; }
-	.ring-2.w-screen.flex.justify-center.items-center.max-w-sm { align-items: flex-start !important; }
+	.align-top {
+		align-self: flex-start !important;
+	}
+
+	.ring-2.w-screen.flex.justify-center.items-center.max-w-sm {
+		align-items: flex-start !important;
+	}
 </style>
 
 @using CertiPurge.Data
@@ -16,15 +21,17 @@
 
 <PageTitle>Add Record</PageTitle>
 <div class="flex justify-center items-center h-screen">
-  <div class="box-content h-1/2 ring-2 w-screen max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-md dark:bg-gray-800 dark:border-gray-700 ring-gray-300 flex flex-col justify-between items-center">
-    <div class="block h-1/3 outline-dashed outline-blue-400 p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700">
-      <InputFile class="" OnChange="@SingleUpload" />
-	  <div class="justify-center pt-4 flex">
-			<img src="/assets/Upload_Icon.svg" class="w-14 h-14 object-contain" />
+	<div
+		class="box-content h-1/2 ring-2 w-screen max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow-md dark:bg-gray-800 dark:border-gray-700 ring-gray-300 flex flex-col justify-between items-center">
+		<div
+			class="block h-1/3 outline-dashed outline-blue-400 p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700">
+			<InputFile class="" OnChange="@SingleUpload" />
+			<div class="justify-center pt-4 flex">
+				<img src="/assets/Upload_Icon.svg" class="w-14 h-14 object-contain" />
+			</div>
 		</div>
-    </div>
-	<p class=""></p>
-  </div>
+		<p class=""></p>
+	</div>
 </div>
 
 
@@ -41,6 +48,11 @@
 	</div>
 }
 
+@if (FailedCount > 0)
+{
+	<span>Failed to read @FailedCount certificates.</span>
+}
+
 
 @code {
 	public class FileData
@@ -53,8 +65,14 @@
 
 	public bool IsProcessing { get; set; } = false;
 
+	public int FailedCount = 0;
+
 	public void Scan(string[] pages)
 	{
+		FailedCount = 0;
+
+		Console.WriteLine("Processing certificates");
+
 		foreach (var page in pages)
 		{
 			string name = "";
@@ -63,9 +81,9 @@
 			string centrenum = "";
 			string candidate = "";
 
-			if (page.Split("\n")[0].Trim().Contains("AQA"))
+			if (page.Contains("AQA"))
 			{
-				AQAReader.ReadAQA(page, out name, out course, out grade, out centrenum, out candidate);
+				Readers.ReadAQA(page, out name, out course, out grade, out centrenum, out candidate);
 				Certificate cert = new Certificate
 				{
 					Name = name,
@@ -82,7 +100,7 @@
 			else if (page.Split("\n")[0].Trim().Contains("BTEC"))
 			{
 				Console.WriteLine("Detected BTEC format.");
-				BTECReader.ReadBTEC(page, out name, out course, out grade, out centrenum, out candidate);
+				Readers.ReadBTEC(page, out name, out course, out grade, out centrenum, out candidate);
 				Certificate cert = new Certificate
 				{
 					Name = name,
@@ -95,6 +113,45 @@
 				};
 
 				DbContext.Certificates.Add(cert);
+			}
+			else if (page.Contains("eduqas"))
+			{
+				Console.WriteLine("Detected EDUQAS format.");
+				Readers.ReadEDUQAS(page, out name, out course, out grade, out centrenum, out candidate);
+				Certificate cert = new Certificate
+				{
+					Name = name,
+					Course = course,
+					Grade = grade,
+					CentreNumber = centrenum,
+					CandidateNumber = candidate,
+					ExamBoard = "BTEC",
+					ULN = "" // Set this to the appropriate value if available
+				};
+
+				DbContext.Certificates.Add(cert);
+			}
+			else if (page.Contains("OCR"))
+			{
+
+				Console.WriteLine("Detected OCR format.");
+				Readers.ReadOCR(page, out name, out course, out grade, out centrenum, out candidate);
+				Certificate cert = new Certificate
+				{
+					Name = name,
+					Course = course,
+					Grade = grade,
+					CentreNumber = centrenum,
+					CandidateNumber = candidate,
+					ExamBoard = "BTEC",
+					ULN = "" // Set this to the appropriate value if available
+				};
+
+				DbContext.Certificates.Add(cert);
+			}
+			else
+			{
+				FailedCount++;
 			}
 		}
 
@@ -109,9 +166,18 @@
 
 		Console.WriteLine($"File selected: {e.File.Name}, {e.File.Size} bytes, {e.File.ContentType}");
 
-		MemoryStream ms = new MemoryStream();
-		await e.File.OpenReadStream().CopyToAsync(ms);
-		var bytes = ms.ToArray();
+		var fileSize = (int)e.File.Size;
+		using var inStream = e.File.OpenReadStream(maxAllowedSize: e.File.Size);
+		var bytes = new byte[fileSize];
+		int offset = 0;
+		while (offset < fileSize)
+		{
+			int read = await inStream.ReadAsync(bytes, offset, fileSize - offset);
+			if (read == 0) break;
+			offset += read;
+		}
+
+		Console.WriteLine("Here");
 
 		var pages = await Converter.ConvertPDFToText(bytes);
 
