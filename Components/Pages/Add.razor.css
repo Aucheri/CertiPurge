@@ -17,6 +17,16 @@ th {
 	margin-bottom: 20px;
 }
 
+
+  .outline-dash-custom {
+    outline-style: dashed;
+    outline-width: 2px;
+    outline-offset: 4px;
+    outline-color: #ef4444; /* Tailwind red-500 */
+    outline-dasharray: 6 3; /* custom dash pattern */
+  }
+
+
 .progress-modal {
 	position: fixed;
 	z-index: 1000;

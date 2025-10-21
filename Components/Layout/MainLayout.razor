@@ -1,4 +1,14 @@
-﻿@inherits LayoutComponentBase
+﻿@using CertiPurge.Data
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@inherits LayoutComponentBase
+
+@inject SignInManager<ApplicationUser> SignInManager;
+@inject NavigationManager NavMan;
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthenticationStateProvider;
+
+@attribute [Authorize]
 
 <div class="page">
     @* <div class="sidebar">
@@ -6,13 +16,23 @@
     </div> *@
 
     <main>
-        <div class="">
-            <div class ="top-row bg-red-600  ">
-            <div class=" px-4 font-extrabold ">
-                <a href="/" >View Records</a>
-                <a href="/add">Add Records</a>
-            </div>
-            </div>
+        <div class="bg-red-700 h-12 flex items-center justify-between w-full px-12">
+			<div class="flex gap-8">
+				<NavLink href="/" class="text-gray-300 hover:text-white" ActiveClass="text-white font-bold" Match="NavLinkMatch.All">
+					View Records
+				</NavLink>
+				<NavLink href="/add" class="text-gray-300 hover:text-white" ActiveClass="text-white font-bold" Match="NavLinkMatch.All">
+					Add Records
+				</NavLink>
+			</div>
+			
+			<div class="flex gap-8">
+                <span class="text-neutral-200"><span class="font-bold text-white">Welcome</span> @uEmail</span>
+	
+				<NavLink href="/logout" class="text-gray-300 hover:text-white" ActiveClass="text-white font-bold" Match="NavLinkMatch.All">
+					Logout
+				</NavLink>
+			</div>
         </div>
 
         <article class="content px-4">
@@ -28,3 +48,18 @@
 </div>
 
 <script src="/js/download.js"></script>
+@code {
+    public string uEmail = "";
+        public string url = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = await SignInManager.UserManager.GetUserAsync(authState.User);
+
+        if (user != null)
+        {
+            uEmail = user.Email ?? "";
+        }
+    }
+}

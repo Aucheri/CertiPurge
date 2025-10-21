@@ -8,40 +8,49 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Forms
 @using CertiPurge.Data
+
 @using OCR
+
+@using Microsoft.AspNetCore.Authorization
+@using OCR;
+
 @using Tesseract
 @inject IJSRuntime JS
 @inject ApplicationDbContext DbContext
 
+@attribute [Authorize]
+
+
 <PageTitle>Home</PageTitle>
-
 <button @onclick="() => ExportCSV()">Export certificates to Excel</button>
+<div class="pt-8"
+	<table>
+		<thead class="bg-red-700">
+			<tr class="text-white">
+					<th>Name</th>
+					<th>Course</th>
+					<th>Grade</th>
+					<th>Centre Number</th>
+          <th>Exam Board</th>
+					<th>Candidate Number</th>
+			</tr>
 
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Course</th>
-            <th>Grade</th>
-            <th>Centre Number</th>
-            <th>Exam Board</th>
-            <th>Candidate Number</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var cert in CertificatesData)
-        {
-            <tr>
-                <td>@cert.Name</td>
-                <td>@cert.Course</td>
-                <td>@cert.Grade</td>
-                <td>@cert.CentreNumber</td>
-                <td>@cert.ExamBoard</td>
-                <td>@cert.CandidateNumber</td>
-            </tr>
-        }
-    </tbody>
-</table>
+		</thead>
+		<tbody>
+			@foreach (var cert in CertificatesData)
+			{
+				<tr class="">
+					<td>@cert.Name</td>
+					<td>@cert.Course</td>
+					<td>@cert.Grade</td>
+					<td>@cert.CentreNumber</td>
+          <td>@cert.ExamBoard</td>
+					<td>@cert.CandidateNumber</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+</div>
 
 @code {
     public class FileData
